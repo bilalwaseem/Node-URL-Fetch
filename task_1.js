@@ -1,6 +1,7 @@
 const express = require('express');
 const hbs = require('hbs');
 const urlToTitle = require('url-to-title');
+const URLArrayMaker = require('./url_util');
 
 const port = process.env.PORT || 3000;
 const app = express();
@@ -10,24 +11,8 @@ console.log('Starting the server!');
 
 
 app.get('/I/want/title/', (req, res) => {
-    let addresses = req.query.address;
-
-    if (!Array.isArray(addresses)) {
-        addresses = [addresses];
-    }
-
-
-    for (var i = 0; i < addresses.length; i++) {
-        if (!addresses[i].includes('http://')) {
-            addresses[i] = 'http://' + addresses[i];
-        }
-        if (!addresses[i].includes('www.')) {
-            console.log(addresses[i].search('http://'));
-            addresses[i] = addresses[i].slice(0, 7) + 'www.' + addresses[i].slice(7);
-        }
-    }
+    let addresses = URLArrayMaker.validator(req.query.address);
     console.log(addresses);
-
     getTitleArray(addresses, (err, titlesArray) => {
         if (err) {
             res.status(400).send(err);
@@ -42,7 +27,7 @@ app.get('/I/want/title/', (req, res) => {
 
 
 function getTitleArray(addresses, callback) {
-    var titles = [];
+    let titles = [];
 
     addresses.forEach((urls, index) => {
 
