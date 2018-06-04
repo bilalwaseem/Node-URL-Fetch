@@ -1,9 +1,8 @@
-// Note: there is no need for using flow library i.e. async.js or step.js
-// as recent versions of node supports builtin async/await functionality
 const express = require('express');
 const hbs = require('hbs');
 const urlToTitle = require('url-to-title');
 const URLArrayMaker = require('./url_util');
+const async = require("async");
 
 const port = process.env.PORT || 3000;
 const app = express();
@@ -14,42 +13,39 @@ app.set('view engine', 'hbs');
 console.log('Starting the server!');
 
 //making the callback function async as there is an async function called in it
-app.get('/I/want/title/', async (req, res) => {
+app.get('/I/want/title/', (req, res) => {
     let addresses = URLArrayMaker.validator(req.query.address);
     console.log(addresses);
 
-    //calling the function using async await
-    let titlesArray = await getTitleArray(addresses);
-    console.log(titlesArray);
-    res.render('index.hbs', {
-        titles: titlesArray
-    })
-});
+    //using async.each method which asynchronously iterates the passed array during which we can pass the array element
+    //into async functions which can be ensured to be completed by calling the callback
+    let titlesArray = [];
+    async.each(addresses, (address, callback) => {
+        urlToTitle(address, (err, title) => {
+            if (title) {
+                titlesArray.push(title);
+                callback();
+            }
+            if (err) {
+                //extracting the name from the URL
+                titlesArray.push(address.slice(11, address.search('.com')) + ' - NO RESPONSE');
+                callback();
+            }
+        });
 
-function getTitleArray(addresses) {
-    let promisedArray = new Promise((resolve, reject) => {
-        let titles = [];
-        //iterating over every element of the array and then passing it to url fetch function using the promise flow structure
-        //using counter for returning from the loop to resolve i.e. its exit condition
-        let check = 0;
-        for (let i = 0; i < addresses.length; i++) {
-            urlToTitle(addresses[i], (err, title) => {
-                if (title) {
-                    titles.push(title);
-                }
-                if (err) {
-                    //extracting the name from the URL
-                    titles.push(addresses[i].slice(11, addresses[i].search('.com')) + ' - NO-RESPONSE');
-                }
-                if ((addresses.length - 1) === check) {
-                    resolve(titles);
-                }
-                check++;
+    }, (err) => {
+        if (err) {
+            res.status(400).send(err);
+        }
+        else {
+            console.log(titlesArray);
+            res.render('index.hbs', {
+                titles: titlesArray
             });
         }
+
     });
-    return promisedArray;
-}
+});
 
 //for other routes
 app.get('*', (req, res) => {

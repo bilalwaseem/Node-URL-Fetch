@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "async": "^2.6.1",
     "express": "^4.16.3",
     "hbs": "^4.0.1",
     "read-title": "^1.0.4",
