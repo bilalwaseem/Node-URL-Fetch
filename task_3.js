@@ -18,8 +18,14 @@ app.get('/I/want/title/', (req, res) => {
     let addresses = URLArrayMaker.validator(req.query.address);
     console.log(addresses);
 
-    //calling the function using promises
-    getTitleArray(addresses).then((titlesArray) => {
+    //storing the pending resolved/reject promises in an array
+    let promisesArray = [];
+    for (let i = 0; i < addresses.length; i++) {
+        promisesArray.push(getTitle(addresses[i]));
+    }
+
+    //resolves all the promises in the array
+    Promise.all(promisesArray).then((titlesArray) => {
         console.log(titlesArray);
         res.render('index.hbs', {
             titles: titlesArray
@@ -30,30 +36,20 @@ app.get('/I/want/title/', (req, res) => {
 
 });
 
-function getTitleArray(addresses) {
-    let promisedArray = new Promise((resolve, reject) => {
-        let titles = [];
-        //iterating over every element of the array and then passing it to url fetch function using the promise flow structure
-        //using counter for returning from the loop to resolve i.e. its exit condition
-        let check = 0;
-        for (let i = 0; i < addresses.length; i++) {
-            urlToTitle(addresses[i], (err, title) => {
-                if (title) {
-                    titles.push(title);
-                }
-                if (err) {
-                    //extracting the name from the URL
-                    titles.push(addresses[i].slice(11, addresses[i].search('.com')) + ' - NO-RESPONSE');
-                }
-                if ((addresses.length - 1) === check) {
-                    resolve(titles);
-                }
-                check++;
-            });
-        }
+function getTitle(address) {
+    return new Promise((resolve, reject) => {
+        urlToTitle(address, (err, title) => {
+            if (title) {
+                resolve(title);
+            }
+            if (err) {
+                //extracting the name from the URL
+                resolve(address.slice(11, address.search('.com')) + ' - NO-RESPONSE');
+            }
+        });
     });
-    return promisedArray;
 }
+
 
 //for other routes
 app.get('*', (req, res) => {
